@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sandx-graph"
+version = "0.1.0"
+description = "Graph intelligence engine — knowledge graph construction, neighborhood consensus, semantic linkage"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "SandX Lab", email = "research@sandx.io" }]
+requires-python = ">=3.10"
+keywords = ["knowledge-graph", "graph-intelligence", "entity-resolution", "consensus", "infrastructure"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+networkx = ["networkx>=3.0"]
+er       = ["sandx-er>=0.1"]
+dev      = ["pytest>=7.4", "pytest-cov", "ruff", "networkx>=3.0"]
+
+[project.urls]
+Homepage   = "https://sandx.io"
+Repository = "https://github.com/sandxlab/sandx-graph"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+markers = ["networkx: requires networkx package"]
