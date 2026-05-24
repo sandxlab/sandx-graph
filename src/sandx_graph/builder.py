@@ -105,6 +105,71 @@ class GraphBuilder:
         graph = GraphBuilder().from_dataframe(nodes_df, edges_df)
     """
 
+    def from_resolution(
+        self,
+        result,
+        edges: list[tuple[str, str, float]] | pd.DataFrame | None = None,
+        *,
+        source_col: str = "source",
+        target_col: str = "target",
+        weight_col: str = "weight",
+        include_singletons: bool = False,
+    ) -> KnowledgeGraph:
+        """Build a graph from a sandx-er ResolutionResult.
+
+        Duck-typed: ``result`` only needs a ``.clusters`` attribute where each
+        cluster has ``.canonical_id``, ``.record_ids``, ``.confidence``, ``.size``.
+        No hard dependency on sandx-er is introduced.
+
+        Args:
+            result:             ResolutionResult from EntityResolver.resolve().
+            edges:              Relationship data between resolved entities.
+                                - list of (src_canonical_id, tgt_canonical_id, weight), or
+                                - DataFrame with source/target columns and optional weight.
+                                If None, graph has nodes only.
+            source_col:         Source column name when edges is a DataFrame.
+            target_col:         Target column name when edges is a DataFrame.
+            weight_col:         Weight column name when edges is a DataFrame.
+                                If column absent, defaults to 1.0.
+            include_singletons: Include single-record clusters (default: False).
+
+        Returns:
+            KnowledgeGraph with one node per qualifying resolved cluster.
+        """
+        nodes: dict[str, dict] = {}
+        for cluster in result.clusters:
+            if not include_singletons and cluster.size == 1:
+                continue
+            nodes[cluster.canonical_id] = {
+                "record_ids": list(cluster.record_ids),
+                "confidence": float(cluster.confidence),
+                "size": int(cluster.size),
+            }
+
+        edge_list: list[tuple[str, str, float]] = []
+        if edges is not None:
+            if isinstance(edges, pd.DataFrame):
+                for required in (source_col, target_col):
+                    if required not in edges.columns:
+                        raise ValueError(
+                            f"Column '{required}' not found in edges DataFrame. "
+                            f"Available: {list(edges.columns)}"
+                        )
+                for _, row in edges.iterrows():
+                    src = str(row[source_col])
+                    tgt = str(row[target_col])
+                    w = float(row[weight_col]) if weight_col in edges.columns else 1.0
+                    nodes.setdefault(src, {})
+                    nodes.setdefault(tgt, {})
+                    edge_list.append((src, tgt, w))
+            else:
+                for src, tgt, w in edges:
+                    nodes.setdefault(str(src), {})
+                    nodes.setdefault(str(tgt), {})
+                    edge_list.append((str(src), str(tgt), float(w)))
+
+        return KnowledgeGraph(nodes=nodes, edges=edge_list)
+
     def from_clusters(self, clusters: list) -> KnowledgeGraph:
         """Build a graph where each resolved entity cluster becomes a node.
 

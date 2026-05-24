@@ -220,3 +220,95 @@ def test_from_clusters_empty(builder):
     g = builder.from_clusters([])
     assert g.n_nodes == 0
     assert g.n_edges == 0
+
+
+# ---------------------------------------------------------------------------
+# GraphBuilder.from_resolution (duck-typing; no sandx-er import required)
+# ---------------------------------------------------------------------------
+
+class _FakeResult:
+    def __init__(self, clusters):
+        self.clusters = clusters
+
+
+def test_from_resolution_nodes_only(builder):
+    result = _FakeResult([
+        _FakeCluster("e1", ["r0", "r1"], 0.9, 2),
+        _FakeCluster("e2", ["r2", "r3"], 0.7, 2),
+    ])
+    g = builder.from_resolution(result)
+    assert g.n_nodes == 2
+    assert g.n_edges == 0
+    assert g.nodes["e1"]["confidence"] == pytest.approx(0.9)
+    assert g.nodes["e1"]["size"] == 2
+
+
+def test_from_resolution_excludes_singletons_by_default(builder):
+    result = _FakeResult([
+        _FakeCluster("e1", ["r0", "r1"], 0.9, 2),
+        _FakeCluster("e2", ["r2"], 1.0, 1),
+    ])
+    g = builder.from_resolution(result)
+    assert g.n_nodes == 1
+    assert g.has_node("e1")
+    assert not g.has_node("e2")
+
+
+def test_from_resolution_include_singletons(builder):
+    result = _FakeResult([
+        _FakeCluster("e1", ["r0", "r1"], 0.9, 2),
+        _FakeCluster("e2", ["r2"], 1.0, 1),
+    ])
+    g = builder.from_resolution(result, include_singletons=True)
+    assert g.n_nodes == 2
+
+
+def test_from_resolution_with_tuple_edges(builder):
+    result = _FakeResult([
+        _FakeCluster("e1", ["r0", "r1"], 0.9, 2),
+        _FakeCluster("e2", ["r2", "r3"], 0.8, 2),
+    ])
+    edges = [("e1", "e2", 0.75)]
+    g = builder.from_resolution(result, edges=edges)
+    assert g.n_edges == 1
+    assert g.has_edge("e1", "e2")
+    assert dict(g.neighbors_weighted("e1"))["e2"] == pytest.approx(0.75)
+
+
+def test_from_resolution_with_dataframe_edges(builder):
+    result = _FakeResult([
+        _FakeCluster("e1", ["r0", "r1"], 0.9, 2),
+        _FakeCluster("e2", ["r2", "r3"], 0.8, 2),
+    ])
+    edges_df = pd.DataFrame({
+        "source": ["e1"],
+        "target": ["e2"],
+        "weight": [0.65],
+    })
+    g = builder.from_resolution(result, edges=edges_df)
+    assert g.n_edges == 1
+    assert dict(g.neighbors_weighted("e2"))["e1"] == pytest.approx(0.65)
+
+
+def test_from_resolution_edge_default_weight(builder):
+    result = _FakeResult([
+        _FakeCluster("e1", ["r0", "r1"], 0.9, 2),
+        _FakeCluster("e2", ["r2", "r3"], 0.8, 2),
+    ])
+    edges_df = pd.DataFrame({"source": ["e1"], "target": ["e2"]})
+    g = builder.from_resolution(result, edges=edges_df)
+    assert dict(g.neighbors_weighted("e1"))["e2"] == pytest.approx(1.0)
+
+
+def test_from_resolution_missing_edge_col(builder):
+    result = _FakeResult([_FakeCluster("e1", ["r0", "r1"], 0.9, 2)])
+    edges_df = pd.DataFrame({"src": ["e1"], "target": ["e2"], "weight": [0.5]})
+    with pytest.raises(ValueError, match="source"):
+        builder.from_resolution(result, edges=edges_df)
+
+
+def test_from_resolution_empty(builder):
+    result = _FakeResult([])
+    g = builder.from_resolution(result)
+    assert g.n_nodes == 0
+    assert g.n_edges == 0
