@@ -28,7 +28,7 @@ sandx-er clusters  →  GraphBuilder  →  KnowledgeGraph  →  ConsensusEngine 
 | `KnowledgeGraph` — undirected weighted graph with adjacency traversal | **Working** |
 | `ConsensusEngine` — BFS neighborhood consensus computation | **Working** |
 | NetworkX export | **Working** (optional dep) |
-| PyPI package | Planned |
+| PyPI package | **Working** |
 
 ## Installation
 
