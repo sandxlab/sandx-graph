@@ -50,6 +50,15 @@ For NetworkX export:
 pip install "sandx-graph[networkx]"
 ```
 
+## Demo
+
+```bash
+pip install sandx-graph
+python -m examples.graph_consensus
+```
+
+Constructs a 5-node knowledge graph of tech companies, scores neighborhood consensus, and prints the weighted edge list — no external data required.
+
 ## Quick Start
 
 ### From sandx-er resolution output
